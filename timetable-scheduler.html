@@ -1,0 +1,1075 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Timetable Scheduler</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0d0d0d;--bg2:#141414;--bg3:#1a1a1a;--bg4:#222;
+  --border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.16);
+  --txt:#f0f0f0;--txt2:rgba(255,255,255,0.6);--txt3:rgba(255,255,255,0.3);
+  --green:#22c55e;--green-bg:rgba(34,197,94,0.12);--green-border:rgba(34,197,94,0.3);
+  --red:#ef4444;--red-bg:rgba(239,68,68,0.12);--red-border:rgba(239,68,68,0.3);
+  --blue:#3b82f6;--blue-bg:rgba(59,130,246,0.1);
+  --yellow:#f59e0b;--yellow-bg:rgba(245,158,11,0.1);
+  --radius:10px;--radius-sm:6px;--font:'Inter',sans-serif;
+  --shadow:0 4px 24px rgba(0,0,0,0.5);
+}
+html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--txt);overflow-x:hidden}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#333;border-radius:4px}
+
+/* LAYOUT */
+#app{display:flex;height:100vh}
+#sidebar{width:200px;min-width:200px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:0}
+#main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+
+/* SIDEBAR */
+.brand{padding:18px 16px 14px;border-bottom:1px solid var(--border)}
+.brand-name{font-size:15px;font-weight:800;letter-spacing:-0.5px}
+.brand-sub{font-size:10px;color:var(--txt3);text-transform:uppercase;letter-spacing:2px;margin-top:2px}
+.nav-section{padding:10px 16px 4px;font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--txt3)}
+.nav-btn{display:flex;align-items:center;gap:8px;padding:9px 16px;cursor:pointer;font-size:13px;font-weight:500;color:var(--txt2);border-left:2px solid transparent;transition:all .15s;white-space:nowrap;background:none;border-top:none;border-right:none;border-bottom:none;width:100%;text-align:left}
+.nav-btn:hover{color:var(--txt);background:rgba(255,255,255,0.03)}
+.nav-btn.active{color:var(--txt);background:rgba(255,255,255,0.05);border-left-color:var(--txt)}
+.nav-btn svg{width:15px;height:15px;flex-shrink:0}
+.sidebar-spacer{flex:1}
+.sidebar-footer{padding:12px 16px;font-size:11px;color:var(--txt3);border-top:1px solid var(--border)}
+
+/* TOPBAR */
+#topbar{height:54px;min-height:54px;display:flex;align-items:center;padding:0 24px;border-bottom:1px solid var(--border);background:var(--bg2);gap:12px}
+.topbar-title{font-size:15px;font-weight:700}
+.topbar-spacer{flex:1}
+.topbar-tag{font-size:11px;padding:3px 8px;border-radius:12px;font-weight:600}
+.topbar-tag.class-view{background:rgba(59,130,246,0.15);color:#60a5fa}
+.topbar-tag.trainer-view{background:rgba(168,85,247,0.15);color:#c084fc}
+
+/* CONTENT */
+#content{flex:1;overflow-y:auto;padding:20px 24px}
+.page{display:none}
+.page.active{display:block;animation:fadeIn .2s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* SECTION HEADER */
+.section-header{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.section-header h2{font-size:18px;font-weight:700;letter-spacing:-0.3px}
+.section-actions{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+
+/* BUTTONS */
+.btn{padding:8px 14px;border-radius:var(--radius-sm);font-size:12.5px;font-weight:600;font-family:var(--font);cursor:pointer;border:1px solid transparent;transition:all .15s;display:inline-flex;align-items:center;gap:5px}
+.btn-primary{background:var(--txt);color:#000;border-color:var(--txt)}
+.btn-primary:hover{background:#ddd}
+.btn-secondary{background:var(--bg3);color:var(--txt2);border-color:var(--border2)}
+.btn-secondary:hover{color:var(--txt);border-color:rgba(255,255,255,0.3)}
+.btn-danger{background:var(--red-bg);color:var(--red);border-color:var(--red-border)}
+.btn-danger:hover{background:rgba(239,68,68,0.2)}
+.btn-success{background:var(--green-bg);color:var(--green);border-color:var(--green-border)}
+.btn-sm{padding:6px 10px;font-size:11.5px}
+.btn-xs{padding:4px 8px;font-size:11px}
+.icon-btn{background:none;border:1px solid var(--border);color:var(--txt3);width:26px;height:26px;border-radius:5px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:12px;transition:all .15s}
+.icon-btn:hover{color:var(--txt);border-color:var(--border2);background:var(--bg3)}
+.icon-btn.del:hover{color:var(--red);border-color:var(--red-border)}
+
+/* FORM */
+.form-group{margin-bottom:14px}
+.form-label{display:block;font-size:10.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--txt3);margin-bottom:5px}
+.form-input{width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--txt);padding:9px 12px;border-radius:var(--radius-sm);font-size:13.5px;font-family:var(--font);outline:none;transition:border-color .15s}
+.form-input:focus{border-color:rgba(255,255,255,0.35)}
+.form-input::placeholder{color:var(--txt3)}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.form-hint{font-size:10.5px;color:var(--txt3);margin-top:4px}
+
+/* MODAL */
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);z-index:200;display:flex;align-items:center;justify-content:center;animation:fadeIn .15s ease}
+.modal{background:#1a1a1a;border:1px solid rgba(255,255,255,0.15);border-radius:14px;padding:24px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.6);animation:slideUp .18s ease}
+@keyframes slideUp{from{transform:translateY(16px);opacity:0}to{transform:none;opacity:1}}
+.modal h3{font-size:17px;font-weight:700;margin-bottom:18px}
+.modal-footer{display:flex;gap:8px;justify-content:flex-end;margin-top:20px;padding-top:16px;border-top:1px solid var(--border)}
+
+/* TABLE */
+.table-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead th{background:rgba(255,255,255,0.04);padding:10px 14px;text-align:left;font-size:10.5px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--txt3);white-space:nowrap}
+tbody td{padding:10px 14px;border-top:1px solid var(--border);color:var(--txt2);vertical-align:middle}
+tbody tr:hover td{background:rgba(255,255,255,0.02);color:var(--txt)}
+
+/* CHIPS */
+.chip{display:inline-flex;align-items:center;padding:2px 7px;border-radius:4px;font-size:10.5px;font-weight:600;background:rgba(255,255,255,0.1);color:var(--txt);margin:1px}
+.chip.blue{background:var(--blue-bg);color:#60a5fa}
+.chip.green{background:var(--green-bg);color:var(--green)}
+.chip.red{background:var(--red-bg);color:var(--red)}
+.chip.yellow{background:var(--yellow-bg);color:var(--yellow)}
+.chip.purple{background:rgba(168,85,247,0.12);color:#c084fc}
+
+/* TOAST */
+#toast-container{position:fixed;bottom:18px;right:18px;z-index:999;display:flex;flex-direction:column;gap:6px}
+.toast{background:#1e1e1e;border:1px solid var(--border2);color:var(--txt);padding:10px 16px;border-radius:var(--radius-sm);font-size:13px;box-shadow:var(--shadow);display:flex;align-items:center;gap:8px;animation:slideIn .2s ease}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:none;opacity:1}}
+.toast.success{border-left:3px solid var(--green)}
+.toast.error{border-left:3px solid var(--red)}
+.toast.warning{border-left:3px solid var(--yellow)}
+.toast.info{border-left:3px solid var(--blue)}
+
+/* EMPTY STATE */
+.empty{text-align:center;padding:50px 20px;color:var(--txt3);display:flex;flex-direction:column;align-items:center;gap:10px}
+.empty svg{opacity:.2}
+.empty p{font-size:13.5px}
+
+/* CHECKBOX GROUP */
+.check-group{display:flex;flex-wrap:wrap;gap:6px}
+.check-cb{display:none}
+.check-lbl{padding:5px 10px;border-radius:5px;cursor:pointer;font-size:12px;background:var(--bg3);border:1px solid var(--border);color:var(--txt2);transition:all .15s;user-select:none}
+.check-cb:checked+.check-lbl{background:rgba(255,255,255,0.12);border-color:rgba(255,255,255,0.3);color:var(--txt)}
+
+/* ========================
+   TIMETABLE GRID
+======================== */
+.tt-controls{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.tt-tabs{display:flex;gap:4px}
+.tt-tab{padding:7px 13px;border-radius:var(--radius-sm);cursor:pointer;font-size:12px;font-weight:600;background:var(--bg3);border:1px solid var(--border);color:var(--txt2);transition:all .15s}
+.tt-tab.active{background:var(--txt);color:#000;border-color:var(--txt)}
+.tt-tab:hover:not(.active){color:var(--txt);border-color:var(--border2)}
+.tt-view-toggle{display:flex;border:1px solid var(--border2);border-radius:var(--radius-sm);overflow:hidden}
+.tt-view-btn{padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer;background:var(--bg3);color:var(--txt3);border:none;font-family:var(--font);transition:all .15s}
+.tt-view-btn.active{background:rgba(255,255,255,0.12);color:var(--txt)}
+.tt-view-btn:hover:not(.active){color:var(--txt2)}
+.tt-select{background:var(--bg3);border:1px solid var(--border2);color:var(--txt);padding:7px 10px;border-radius:var(--radius-sm);font-size:12.5px;font-family:var(--font);outline:none;cursor:pointer}
+.tt-select option{background:#1a1a1a}
+
+/* WEEKLY GRID */
+.weekly-grid-wrap{overflow-x:auto}
+.weekly-grid{display:grid;min-width:780px;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.wg-header-row{display:contents}
+.wg-time-header,.wg-day-header{background:rgba(255,255,255,0.04);padding:9px 10px;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--txt3);border-bottom:1px solid var(--border)}
+.wg-time-header{border-right:1px solid var(--border)}
+.wg-day-header{text-align:center;border-right:1px solid rgba(255,255,255,0.04)}
+.wg-row{display:contents}
+.wg-time{font-size:10.5px;color:var(--txt3);padding:0 10px;background:rgba(255,255,255,0.02);border-right:1px solid var(--border);border-bottom:1px solid rgba(255,255,255,0.03);display:flex;align-items:center;font-variant-numeric:tabular-nums;white-space:nowrap;min-height:58px}
+.wg-cell{border-right:1px solid rgba(255,255,255,0.03);border-bottom:1px solid rgba(255,255,255,0.03);padding:4px;min-height:58px;position:relative}
+
+/* CELL STATES */
+/* Green = free/empty */
+.wg-cell.free{cursor:pointer;transition:background .15s}
+.wg-cell.free:hover{background:rgba(34,197,94,0.06)}
+.wg-cell.free .cell-add{display:flex;align-items:center;justify-content:center;height:100%;color:rgba(34,197,94,0.35);font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;gap:4px}
+.wg-cell.free:hover .cell-add{color:var(--green)}
+
+/* Occupied */
+.wg-cell.occupied{cursor:default}
+.slot-block{border-radius:6px;padding:5px 8px;height:100%;min-height:50px;display:flex;flex-direction:column;gap:2px;position:relative;transition:all .15s}
+.slot-block.normal{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12)}
+.slot-block.conflict-block{background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.35)}
+.slot-main{font-size:11.5px;font-weight:700;color:var(--txt);line-height:1.3}
+.slot-sub{font-size:10px;color:var(--txt2);line-height:1.3}
+.slot-code{font-size:9.5px;color:var(--txt3);margin-top:2px}
+.slot-remove{position:absolute;top:4px;right:4px;width:16px;height:16px;background:rgba(239,68,68,0.2);border:none;color:var(--red);border-radius:3px;cursor:pointer;font-size:10px;display:none;align-items:center;justify-content:center;line-height:1}
+.wg-cell.occupied:hover .slot-remove{display:flex}
+
+/* LEGEND */
+.legend{display:flex;align-items:center;gap:16px;font-size:11.5px;color:var(--txt2);margin-bottom:12px}
+.legend-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+.legend-dot.free{background:rgba(34,197,94,0.3);border:1px solid var(--green)}
+.legend-dot.taken{background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3)}
+.legend-dot.conflict{background:rgba(239,68,68,0.25);border:1px solid var(--red)}
+
+/* DROPDOWN OVERLAY */
+.slot-dropdown{position:absolute;top:calc(100% + 4px);left:0;z-index:50;background:#1e1e1e;border:1px solid var(--border2);border-radius:var(--radius);min-width:200px;max-width:260px;box-shadow:0 8px 32px rgba(0,0,0,0.6);overflow:hidden;animation:fadeIn .15s ease}
+.slot-dropdown .dd-header{padding:8px 12px;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--txt3);border-bottom:1px solid var(--border);background:rgba(255,255,255,0.03)}
+.slot-dropdown .dd-item{padding:8px 12px;cursor:pointer;font-size:12.5px;font-weight:500;display:flex;align-items:center;gap:8px;transition:background .12s}
+.slot-dropdown .dd-item:hover{background:rgba(255,255,255,0.06)}
+.slot-dropdown .dd-item.taken{color:var(--red)}
+.slot-dropdown .dd-item.taken:hover{background:var(--red-bg)}
+.slot-dropdown .dd-item.free-item{color:var(--green)}
+.slot-dropdown .dd-item.free-item:hover{background:var(--green-bg)}
+.slot-dropdown .dd-item .dd-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.slot-dropdown .dd-cancel{padding:7px 12px;font-size:11.5px;color:var(--txt3);border-top:1px solid var(--border);cursor:pointer;text-align:center;transition:background .12s}
+.slot-dropdown .dd-cancel:hover{background:rgba(255,255,255,0.04);color:var(--txt)}
+
+/* DOWNLOAD SECTION */
+.download-bar{display:flex;align-items:center;gap:8px;padding:12px 16px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);margin-top:20px;flex-wrap:wrap}
+.download-bar-label{font-size:12px;font-weight:600;color:var(--txt2);margin-right:4px}
+.dl-btn{display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:var(--radius-sm);font-size:12px;font-weight:600;cursor:pointer;border:1px solid;transition:all .15s;font-family:var(--font)}
+.dl-btn.word{background:rgba(37,99,235,0.1);color:#60a5fa;border-color:rgba(37,99,235,0.3)}
+.dl-btn.word:hover{background:rgba(37,99,235,0.2)}
+.dl-btn.pdf{background:rgba(239,68,68,0.1);color:var(--red);border-color:rgba(239,68,68,0.3)}
+.dl-btn.pdf:hover{background:rgba(239,68,68,0.2)}
+.dl-btn.excel{background:rgba(34,197,94,0.1);color:var(--green);border-color:rgba(34,197,94,0.3)}
+.dl-btn.excel:hover{background:rgba(34,197,94,0.2)}
+.dl-spacer{flex:1}
+
+/* DASHBOARD STATS */
+.stats-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;margin-bottom:20px}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;transition:border-color .15s}
+.stat-card:hover{border-color:var(--border2)}
+.stat-label{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--txt3);margin-bottom:6px}
+.stat-value{font-size:28px;font-weight:800;line-height:1;letter-spacing:-1px}
+.stat-sub{font-size:11px;color:var(--txt3);margin-top:3px}
+.stat-card.green .stat-value{color:var(--green)}
+.stat-card.red .stat-value{color:var(--red)}
+.stat-card.blue .stat-value{color:var(--blue)}
+.stat-card.yellow .stat-value{color:var(--yellow)}
+
+/* INFO CARD */
+.info-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:14px}
+.info-card-title{font-size:11.5px;font-weight:700;color:var(--txt2);margin-bottom:12px;letter-spacing:0.3px}
+
+/* CONFLICT ITEM */
+.conflict-item{background:var(--red-bg);border:1px solid var(--red-border);border-radius:var(--radius-sm);padding:10px 12px;font-size:12.5px;color:var(--txt2);margin-bottom:6px}
+.conflict-item strong{color:var(--red)}
+
+@media(max-width:700px){
+  #sidebar{display:none}
+  .form-row{grid-template-columns:1fr}
+  .weekly-grid{min-width:600px}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <nav id="sidebar">
+    <div class="brand">
+      <div class="brand-name">TimetableOS</div>
+      <div class="brand-sub">Scheduler</div>
+    </div>
+    <div class="sidebar-nav" style="flex:1;overflow-y:auto;padding:8px 0">
+      <div class="nav-section">Overview</div>
+      <button class="nav-btn active" data-page="dashboard" onclick="nav('dashboard')">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        Dashboard
+      </button>
+      <div class="nav-section">Manage</div>
+      <button class="nav-btn" data-page="classes" onclick="nav('classes')">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        Classes
+      </button>
+      <button class="nav-btn" data-page="trainers" onclick="nav('trainers')">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+        Trainers
+      </button>
+      <div class="nav-section">Timetable</div>
+      <button class="nav-btn" data-page="class-view" onclick="nav('class-view')">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        Class View
+      </button>
+      <button class="nav-btn" data-page="trainer-view" onclick="nav('trainer-view')">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 10-16 0"/></svg>
+        Trainer View
+      </button>
+    </div>
+    <div class="sidebar-footer">All data saved locally</div>
+  </nav>
+
+  <div id="main">
+    <header id="topbar">
+      <span class="topbar-title" id="topbar-title">Dashboard</span>
+      <div class="topbar-spacer"></div>
+      <span class="topbar-tag" id="view-tag" style="display:none"></span>
+    </header>
+
+    <main id="content">
+
+      <!-- DASHBOARD -->
+      <div id="page-dashboard" class="page active">
+        <div class="section-header">
+          <h2>Dashboard</h2>
+          <div class="section-actions">
+            <button class="btn btn-secondary btn-sm" onclick="resetAll()">↺ Reset Demo Data</button>
+          </div>
+        </div>
+        <div class="stats-row" id="dash-stats"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+          <div class="info-card">
+            <div class="info-card-title">⚡ Quick Links</div>
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <button class="btn btn-secondary btn-sm" onclick="nav('class-view')" style="justify-content:flex-start">📅 Open Class View — assign trainer &amp; course to classes</button>
+              <button class="btn btn-secondary btn-sm" onclick="nav('trainer-view')" style="justify-content:flex-start">👤 Open Trainer View — see which classes each trainer covers</button>
+              <button class="btn btn-secondary btn-sm" onclick="nav('classes')" style="justify-content:flex-start">🏫 Manage Classes</button>
+              <button class="btn btn-secondary btn-sm" onclick="nav('trainers')" style="justify-content:flex-start">👥 Manage Trainers</button>
+            </div>
+          </div>
+          <div class="info-card">
+            <div class="info-card-title">⚠ Conflicts</div>
+            <div id="dash-conflicts"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CLASSES PAGE -->
+      <div id="page-classes" class="page">
+        <div class="section-header">
+          <h2>Classes</h2>
+          <div class="section-actions">
+            <button class="btn btn-primary btn-sm" onclick="openClassModal()">+ Add Class</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Class Name</th><th>Room</th><th>Capacity</th><th>Courses Assigned</th><th></th></tr></thead>
+            <tbody id="classes-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TRAINERS PAGE -->
+      <div id="page-trainers" class="page">
+        <div class="section-header">
+          <h2>Trainers</h2>
+          <div class="section-actions">
+            <button class="btn btn-primary btn-sm" onclick="openTrainerModal()">+ Add Trainer</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Name</th><th>Email</th><th>Subjects</th><th>Availability</th><th></th></tr></thead>
+            <tbody id="trainers-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- CLASS VIEW (assign trainer + course to class slots) -->
+      <div id="page-class-view" class="page">
+        <div class="section-header">
+          <h2>Class View</h2>
+          <div class="section-actions">
+            <select class="tt-select" id="cv-class-select" onchange="renderClassView()">
+              <option value="">— Select Class —</option>
+            </select>
+          </div>
+        </div>
+        <p style="font-size:12.5px;color:var(--txt3);margin-bottom:14px">Click any <span style="color:var(--green);font-weight:600">green free slot</span> to assign a trainer &amp; course. <span style="color:var(--red);font-weight:600">Red occupied slots</span> can be replaced.</p>
+        <div class="legend">
+          <span class="legend-dot free"></span><span>Free — click to assign</span>
+          <span class="legend-dot taken" style="margin-left:8px"></span><span>Occupied</span>
+          <span class="legend-dot conflict" style="margin-left:8px"></span><span>Conflict</span>
+        </div>
+        <div id="cv-grid-wrap">
+          <div class="empty" style="padding:40px 20px">
+            <svg width="36" height="36" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <p>Select a class above to view its weekly timetable</p>
+          </div>
+        </div>
+        <div class="download-bar" id="cv-download" style="display:none">
+          <span class="download-bar-label">Download Schedule:</span>
+          <button class="dl-btn word" onclick="downloadWord('class')">📄 Word</button>
+          <button class="dl-btn pdf" onclick="downloadPDF('class')">📕 PDF</button>
+          <button class="dl-btn excel" onclick="downloadExcel('class')">📊 Excel</button>
+          <span class="dl-spacer"></span>
+          <span style="font-size:11px;color:var(--txt3)" id="cv-download-label"></span>
+        </div>
+      </div>
+
+      <!-- TRAINER VIEW (see classes assigned to a trainer) -->
+      <div id="page-trainer-view" class="page">
+        <div class="section-header">
+          <h2>Trainer View</h2>
+          <div class="section-actions">
+            <select class="tt-select" id="tv-trainer-select" onchange="renderTrainerView()">
+              <option value="">— Select Trainer —</option>
+            </select>
+          </div>
+        </div>
+        <p style="font-size:12.5px;color:var(--txt3);margin-bottom:14px">Shows all classes assigned to the selected trainer for the week. Click <span style="color:var(--red);font-weight:600">occupied slots</span> to reassign or clear.</p>
+        <div class="legend">
+          <span class="legend-dot free"></span><span>Available (no class assigned)</span>
+          <span class="legend-dot taken" style="margin-left:8px"></span><span>Class assigned</span>
+          <span class="legend-dot conflict" style="margin-left:8px"></span><span>Double-booked conflict</span>
+        </div>
+        <div id="tv-grid-wrap">
+          <div class="empty" style="padding:40px 20px">
+            <svg width="36" height="36" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 10-16 0"/></svg>
+            <p>Select a trainer above to view their weekly schedule</p>
+          </div>
+        </div>
+        <div class="download-bar" id="tv-download" style="display:none">
+          <span class="download-bar-label">Download Schedule:</span>
+          <button class="dl-btn word" onclick="downloadWord('trainer')">📄 Word</button>
+          <button class="dl-btn pdf" onclick="downloadPDF('trainer')">📕 PDF</button>
+          <button class="dl-btn excel" onclick="downloadExcel('trainer')">📊 Excel</button>
+          <span class="dl-spacer"></span>
+          <span style="font-size:11px;color:var(--txt3)" id="tv-download-label"></span>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<div id="modal-root"></div>
+
+<script>
+// ============================================================
+// DATA
+// ============================================================
+const DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const SLOTS = [];
+for(let h=8;h<=19;h++) SLOTS.push(`${String(h).padStart(2,'0')}:00`);
+
+let DB = { classes:[], trainers:[], schedule:{} };
+
+function saveDB(){ localStorage.setItem('ttOS3',JSON.stringify(DB)); }
+function loadDB(){
+  const raw = localStorage.getItem('ttOS3');
+  if(raw){ try{ DB=JSON.parse(raw); }catch(e){ seedData(); } }
+  else seedData();
+}
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,5); }
+
+// Schedule: DB.schedule[classId][day][slot] = { courseId, trainerId, courseName, trainerName }
+
+function seedData(){
+  DB.classes = [
+    {id:'cls1',name:'Class A – Grade 10',room:'Room 101',capacity:30,courses:[{id:'cr1',name:'Mathematics',code:'MATH'},{id:'cr2',name:'Physics',code:'PHY'},{id:'cr3',name:'English',code:'ENG'}]},
+    {id:'cls2',name:'Class B – Grade 10',room:'Room 102',capacity:28,courses:[{id:'cr1',name:'Mathematics',code:'MATH'},{id:'cr4',name:'Chemistry',code:'CHEM'},{id:'cr3',name:'English',code:'ENG'}]},
+    {id:'cls3',name:'Class C – Grade 11',room:'Room 201',capacity:32,courses:[{id:'cr5',name:'Biology',code:'BIO'},{id:'cr2',name:'Physics',code:'PHY'},{id:'cr6',name:'Computer Science',code:'CS'}]},
+  ];
+  DB.trainers = [
+    {id:'t1',name:'Dr. Priya Sharma',email:'priya@inst.edu',subjects:['Mathematics','Physics'],availability:{Monday:true,Tuesday:true,Wednesday:true,Thursday:true,Friday:true,Saturday:false}},
+    {id:'t2',name:'Mr. Arjun Mehta',email:'arjun@inst.edu',subjects:['Chemistry','Biology'],availability:{Monday:true,Tuesday:false,Wednesday:true,Thursday:true,Friday:true,Saturday:false}},
+    {id:'t3',name:'Ms. Kavita Nair',email:'kavita@inst.edu',subjects:['English','History'],availability:{Monday:true,Tuesday:true,Wednesday:true,Thursday:false,Friday:true,Saturday:true}},
+    {id:'t4',name:'Mr. Rohit Verma',email:'rohit@inst.edu',subjects:['Computer Science','Mathematics'],availability:{Monday:false,Tuesday:true,Wednesday:true,Thursday:true,Friday:true,Saturday:false}},
+  ];
+  // Seed some schedule entries
+  DB.schedule = {
+    cls1:{
+      Monday:{'08:00':{courseId:'cr1',courseName:'Mathematics',code:'MATH',trainerId:'t1',trainerName:'Dr. Priya Sharma'},'09:00':{courseId:'cr3',courseName:'English',code:'ENG',trainerId:'t3',trainerName:'Ms. Kavita Nair'}},
+      Tuesday:{'10:00':{courseId:'cr2',courseName:'Physics',code:'PHY',trainerId:'t1',trainerName:'Dr. Priya Sharma'}},
+      Wednesday:{'08:00':{courseId:'cr1',courseName:'Mathematics',code:'MATH',trainerId:'t4',trainerName:'Mr. Rohit Verma'},'11:00':{courseId:'cr3',courseName:'English',code:'ENG',trainerId:'t3',trainerName:'Ms. Kavita Nair'}},
+    },
+    cls2:{
+      Monday:{'10:00':{courseId:'cr4',courseName:'Chemistry',code:'CHEM',trainerId:'t2',trainerName:'Mr. Arjun Mehta'}},
+      Wednesday:{'09:00':{courseId:'cr1',courseName:'Mathematics',code:'MATH',trainerId:'t1',trainerName:'Dr. Priya Sharma'}},
+      Friday:{'08:00':{courseId:'cr3',courseName:'English',code:'ENG',trainerId:'t3',trainerName:'Ms. Kavita Nair'},'09:00':{courseId:'cr4',courseName:'Chemistry',code:'CHEM',trainerId:'t2',trainerName:'Mr. Arjun Mehta'}},
+    },
+    cls3:{
+      Tuesday:{'08:00':{courseId:'cr5',courseName:'Biology',code:'BIO',trainerId:'t2',trainerName:'Mr. Arjun Mehta'},'09:00':{courseId:'cr6',courseName:'Computer Science',code:'CS',trainerId:'t4',trainerName:'Mr. Rohit Verma'}},
+      Thursday:{'10:00':{courseId:'cr2',courseName:'Physics',code:'PHY',trainerId:'t1',trainerName:'Dr. Priya Sharma'}},
+    }
+  };
+  saveDB();
+}
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+const PAGE_TITLES = {dashboard:'Dashboard',classes:'Classes',trainers:'Trainers','class-view':'Class View','trainer-view':'Trainer View'};
+let currentPage = 'dashboard';
+
+function nav(page){
+  currentPage = page;
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  document.querySelector('[data-page="'+page+'"]')?.classList.add('active');
+  document.getElementById('topbar-title').textContent = PAGE_TITLES[page]||page;
+  const tag = document.getElementById('view-tag');
+  if(page==='class-view'){ tag.style.display=''; tag.className='topbar-tag class-view'; tag.textContent='Class View'; }
+  else if(page==='trainer-view'){ tag.style.display=''; tag.className='topbar-tag trainer-view'; tag.textContent='Trainer View'; }
+  else tag.style.display='none';
+  renderPage(page);
+  closeDropdown();
+}
+
+function renderPage(page){
+  if(page==='dashboard') renderDashboard();
+  else if(page==='classes') renderClasses();
+  else if(page==='trainers') renderTrainers();
+  else if(page==='class-view') { populateCVSelect(); renderClassView(); }
+  else if(page==='trainer-view') { populateTVSelect(); renderTrainerView(); }
+}
+
+// ============================================================
+// TOAST
+// ============================================================
+function toast(msg,type='info',dur=3000){
+  const icons={success:'✓',error:'✗',warning:'⚠',info:'ℹ'};
+  const el=document.createElement('div');
+  el.className=`toast ${type}`;
+  el.innerHTML=`<span>${icons[type]}</span><span>${msg}</span>`;
+  document.getElementById('toast-container').appendChild(el);
+  setTimeout(()=>{ el.style.opacity='0'; el.style.transform='translateX(100%)'; el.style.transition='.25s ease'; setTimeout(()=>el.remove(),260); },dur);
+}
+
+// ============================================================
+// MODAL
+// ============================================================
+function openModal(html){
+  closeModal();
+  const bd=document.createElement('div');
+  bd.className='modal-backdrop'; bd.id='modal-bd';
+  bd.innerHTML=`<div class="modal">${html}</div>`;
+  bd.addEventListener('click',e=>{ if(e.target===bd) closeModal(); });
+  document.getElementById('modal-root').appendChild(bd);
+}
+function closeModal(){ document.getElementById('modal-bd')?.remove(); }
+
+// ============================================================
+// CONFLICT DETECTION
+// ============================================================
+function getAllSlots(){
+  const res=[];
+  Object.keys(DB.schedule).forEach(classId=>{
+    const cls=DB.classes.find(c=>c.id===classId);
+    DAYS.forEach(day=>{
+      if(!DB.schedule[classId]?.[day]) return;
+      Object.keys(DB.schedule[classId][day]).forEach(slot=>{
+        const e=DB.schedule[classId][day][slot];
+        res.push({classId,className:cls?.name||'?',day,slot,...e});
+      });
+    });
+  });
+  return res;
+}
+
+function detectConflicts(){
+  const slots=getAllSlots();
+  const conflicts=[];
+  // Trainer double-booked
+  const map={};
+  slots.forEach(s=>{
+    const k=`${s.trainerId}|${s.day}|${s.slot}`;
+    if(!map[k]) map[k]=[];
+    map[k].push(s);
+  });
+  Object.values(map).forEach(arr=>{
+    if(arr.length>1){
+      conflicts.push({type:'Trainer Conflict',message:`${arr[0].trainerName} is double-booked on ${arr[0].day} at ${arr[0].slot} (${arr.map(a=>a.className).join(' & ')})`});
+    }
+  });
+  return conflicts;
+}
+
+function isConflictSlot(classId,day,slot){
+  const e=DB.schedule[classId]?.[day]?.[slot];
+  if(!e) return false;
+  const slots=getAllSlots();
+  return slots.filter(s=>s.trainerId===e.trainerId&&s.day===day&&s.slot===slot&&s.classId!==classId).length>0;
+}
+
+function isTrainerConflictSlot(trainerId,day,slot){
+  const slots=getAllSlots();
+  return slots.filter(s=>s.trainerId===trainerId&&s.day===day&&s.slot===slot).length>1;
+}
+
+// ============================================================
+// DASHBOARD
+// ============================================================
+function renderDashboard(){
+  const slots=getAllSlots();
+  const conflicts=detectConflicts();
+  const stats=[
+    {label:'Classes',value:DB.classes.length,sub:'registered'},
+    {label:'Trainers',value:DB.trainers.length,sub:'faculty',cls:'blue'},
+    {label:'Sessions',value:slots.length,sub:'scheduled total',cls:'green'},
+    {label:'Conflicts',value:conflicts.length,sub:'need fixing',cls:conflicts.length?'red':''},
+  ];
+  document.getElementById('dash-stats').innerHTML=stats.map(s=>`
+    <div class="stat-card ${s.cls||''}">
+      <div class="stat-label">${s.label}</div>
+      <div class="stat-value">${s.value}</div>
+      <div class="stat-sub">${s.sub}</div>
+    </div>`).join('');
+  const conflEl=document.getElementById('dash-conflicts');
+  if(!conflicts.length){
+    conflEl.innerHTML='<div style="color:var(--green);font-size:13px;display:flex;align-items:center;gap:6px"><span>✓</span> No conflicts — schedule is clean!</div>';
+  } else {
+    conflEl.innerHTML=conflicts.map(c=>`<div class="conflict-item"><strong>${c.type}:</strong> ${c.message}</div>`).join('');
+  }
+}
+
+// ============================================================
+// CLASSES MANAGEMENT
+// ============================================================
+function renderClasses(){
+  const tbody=document.getElementById('classes-tbody');
+  if(!DB.classes.length){ tbody.innerHTML=`<tr><td colspan="5"><div class="empty"><p>No classes yet. Click "+ Add Class" to create one.</p></div></td></tr>`; return; }
+  tbody.innerHTML=DB.classes.map(c=>{
+    const courses=(c.courses||[]).map(cr=>`<span class="chip">${cr.code}</span>`).join('');
+    return `<tr>
+      <td><strong>${c.name}</strong></td>
+      <td>${c.room}</td>
+      <td>${c.capacity}</td>
+      <td>${courses||'<span style="color:var(--txt3)">None</span>'}</td>
+      <td style="white-space:nowrap">
+        <button class="icon-btn" onclick="openClassModal('${c.id}')" title="Edit">✎</button>
+        <button class="icon-btn del" onclick="delClass('${c.id}')" title="Delete">✕</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function openClassModal(id=null){
+  const cls=id?DB.classes.find(c=>c.id===id):null;
+  // Build course list (dynamic - user adds courses per class)
+  const existingCourses=(cls?.courses||[]);
+  const courseRows=existingCourses.map((cr,i)=>`
+    <div class="form-row" id="cr-row-${i}" style="align-items:center;gap:6px;margin-bottom:8px">
+      <input class="form-input" placeholder="Course Name" value="${cr.name}" id="cr-name-${i}" style="flex:2">
+      <input class="form-input" placeholder="Code" value="${cr.code}" id="cr-code-${i}" style="flex:1;max-width:90px">
+      <button class="icon-btn del" onclick="this.closest('[id^=cr-row]').remove()" title="Remove">✕</button>
+    </div>`).join('');
+  openModal(`
+    <h3>${cls?'Edit Class':'New Class'}</h3>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Class Name</label><input class="form-input" id="f-cls-name" placeholder="Class A – Grade 10" value="${cls?.name||''}"></div>
+      <div class="form-group"><label class="form-label">Room</label><input class="form-input" id="f-cls-room" placeholder="Room 101" value="${cls?.room||''}"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Capacity</label><input class="form-input" id="f-cls-cap" type="number" min="1" placeholder="30" value="${cls?.capacity||30}" style="max-width:100px"></div>
+    <div class="form-group">
+      <label class="form-label">Courses Taught in this Class</label>
+      <div id="courses-list">${courseRows}</div>
+      <button class="btn btn-secondary btn-xs" style="margin-top:8px" onclick="addCourseRow()">+ Add Course</button>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveClass('${id||''}')">Save</button>
+    </div>
+  `);
+}
+
+function addCourseRow(){
+  const list=document.getElementById('courses-list');
+  const i=Date.now();
+  const div=document.createElement('div');
+  div.className='form-row';
+  div.id='cr-row-'+i;
+  div.style.cssText='align-items:center;gap:6px;margin-bottom:8px';
+  div.innerHTML=`<input class="form-input" placeholder="Course Name" id="cr-name-${i}" style="flex:2"><input class="form-input" placeholder="Code" id="cr-code-${i}" style="flex:1;max-width:90px"><button class="icon-btn del" onclick="this.closest('[id^=cr-row]').remove()" title="Remove">✕</button>`;
+  list.appendChild(div);
+}
+
+function saveClass(id){
+  const name=document.getElementById('f-cls-name').value.trim();
+  const room=document.getElementById('f-cls-room').value.trim();
+  const capacity=parseInt(document.getElementById('f-cls-cap').value)||30;
+  if(!name){ toast('Class name required','error'); return; }
+  // Collect courses from dynamic rows
+  const rows=document.querySelectorAll('[id^="cr-row-"]');
+  const courses=[];
+  rows.forEach(row=>{
+    const idx=row.id.replace('cr-row-','');
+    const n=document.getElementById('cr-name-'+idx)?.value.trim();
+    const c=document.getElementById('cr-code-'+idx)?.value.trim();
+    if(n) courses.push({id:'cr-'+uid(),name:n,code:c||n.slice(0,4).toUpperCase()});
+  });
+  if(id){
+    const cls=DB.classes.find(c=>c.id===id);
+    Object.assign(cls,{name,room,capacity,courses});
+    toast('Class updated','success');
+  } else {
+    DB.classes.push({id:uid(),name,room,capacity,courses});
+    toast('Class added','success');
+  }
+  saveDB(); closeModal(); renderClasses();
+}
+
+function delClass(id){
+  if(!confirm('Delete this class? All its sessions will be removed.')) return;
+  DB.classes=DB.classes.filter(c=>c.id!==id);
+  delete DB.schedule[id];
+  saveDB(); renderClasses(); toast('Class deleted','warning');
+}
+
+// ============================================================
+// TRAINERS MANAGEMENT
+// ============================================================
+function renderTrainers(){
+  const tbody=document.getElementById('trainers-tbody');
+  if(!DB.trainers.length){ tbody.innerHTML=`<tr><td colspan="5"><div class="empty"><p>No trainers yet.</p></div></td></tr>`; return; }
+  tbody.innerHTML=DB.trainers.map(t=>{
+    const avail=DAYS.filter(d=>t.availability?.[d]).map(d=>`<span class="chip green">${d.slice(0,3)}</span>`).join('');
+    const subj=(t.subjects||[]).map(s=>`<span class="chip blue">${s}</span>`).join('');
+    return `<tr>
+      <td><strong>${t.name}</strong></td>
+      <td style="font-size:12px;color:var(--txt3)">${t.email}</td>
+      <td>${subj||'<span style="color:var(--txt3)">—</span>'}</td>
+      <td>${avail||'<span style="color:var(--txt3)">None</span>'}</td>
+      <td style="white-space:nowrap">
+        <button class="icon-btn" onclick="openTrainerModal('${t.id}')" title="Edit">✎</button>
+        <button class="icon-btn del" onclick="delTrainer('${t.id}')" title="Delete">✕</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function openTrainerModal(id=null){
+  const tr=id?DB.trainers.find(t=>t.id===id):null;
+  const dayChecks=DAYS.map(d=>`
+    <input type="checkbox" class="check-cb" id="av-${d}" ${tr?.availability?.[d]?'checked':''}>
+    <label class="check-lbl" for="av-${d}">${d.slice(0,3)}</label>
+  `).join('');
+  openModal(`
+    <h3>${tr?'Edit Trainer':'New Trainer'}</h3>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Full Name</label><input class="form-input" id="f-tr-name" placeholder="Dr. Name" value="${tr?.name||''}"></div>
+      <div class="form-group"><label class="form-label">Email</label><input class="form-input" id="f-tr-email" type="email" placeholder="name@inst.edu" value="${tr?.email||''}"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Subjects / Specializations</label><input class="form-input" id="f-tr-subj" placeholder="Mathematics, Physics (comma separated)" value="${(tr?.subjects||[]).join(', ')}"></div>
+    <div class="form-group"><label class="form-label">Available Days</label><div class="check-group">${dayChecks}</div></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveTrainer('${id||''}')">Save</button>
+    </div>
+  `);
+}
+
+function saveTrainer(id){
+  const name=document.getElementById('f-tr-name').value.trim();
+  const email=document.getElementById('f-tr-email').value.trim();
+  const subjects=document.getElementById('f-tr-subj').value.split(',').map(s=>s.trim()).filter(Boolean);
+  if(!name){ toast('Name required','error'); return; }
+  const availability={};
+  DAYS.forEach(d=>{ availability[d]=document.getElementById('av-'+d)?.checked||false; });
+  if(id){
+    const t=DB.trainers.find(t=>t.id===id);
+    Object.assign(t,{name,email,subjects,availability});
+    toast('Trainer updated','success');
+  } else {
+    DB.trainers.push({id:uid(),name,email,subjects,availability});
+    toast('Trainer added','success');
+  }
+  saveDB(); closeModal(); renderTrainers();
+}
+
+function delTrainer(id){
+  if(!confirm('Delete this trainer? They will be removed from all sessions.')) return;
+  DB.trainers=DB.trainers.filter(t=>t.id!==id);
+  // Remove from schedule
+  Object.keys(DB.schedule).forEach(clsId=>{
+    DAYS.forEach(day=>{
+      SLOTS.forEach(slot=>{
+        if(DB.schedule[clsId]?.[day]?.[slot]?.trainerId===id) delete DB.schedule[clsId][day][slot];
+      });
+    });
+  });
+  saveDB(); renderTrainers(); toast('Trainer deleted','warning');
+}
+
+// ============================================================
+// CLASS VIEW — weekly grid with dropdown slots
+// ============================================================
+function populateCVSelect(){
+  const sel=document.getElementById('cv-class-select');
+  const cur=sel.value;
+  sel.innerHTML='<option value="">— Select Class —</option>'+DB.classes.map(c=>`<option value="${c.id}" ${c.id===cur?'selected':''}>${c.name}</option>`).join('');
+}
+
+function renderClassView(){
+  closeDropdown();
+  const classId=document.getElementById('cv-class-select').value;
+  const wrap=document.getElementById('cv-grid-wrap');
+  const dlBar=document.getElementById('cv-download');
+  if(!classId){
+    wrap.innerHTML=`<div class="empty" style="padding:40px 20px"><svg width="36" height="36" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><p>Select a class above</p></div>`;
+    dlBar.style.display='none'; return;
+  }
+  const cls=DB.classes.find(c=>c.id===classId);
+  dlBar.style.display='flex';
+  document.getElementById('cv-download-label').textContent=cls?.name||'';
+  wrap.innerHTML=buildWeeklyGrid(classId,'class');
+}
+
+function buildWeeklyGrid(id, viewMode){
+  // viewMode='class' → id is classId; 'trainer' → id is trainerId
+  const colCount=DAYS.length;
+  const gridStyle=`grid-template-columns:68px repeat(${colCount},1fr)`;
+  let html=`<div class="weekly-grid-wrap"><div class="weekly-grid" style="${gridStyle}">`;
+  // Header row
+  html+=`<div class="wg-time-header">TIME</div>`;
+  DAYS.forEach(d=>{ html+=`<div class="wg-day-header">${d.slice(0,3)}</div>`; });
+  // Rows
+  SLOTS.forEach(slot=>{
+    html+=`<div class="wg-time">${slot}</div>`;
+    DAYS.forEach(day=>{
+      let entry=null, isConflict=false;
+      if(viewMode==='class'){
+        entry=DB.schedule[id]?.[day]?.[slot]||null;
+        isConflict=entry?isConflictSlot(id,day,slot):false;
+      } else {
+        // trainer view: find if this trainer has a session somewhere at this day+slot
+        const allS=getAllSlots();
+        const match=allS.find(s=>s.trainerId===id&&s.day===day&&s.slot===slot);
+        if(match){ entry={...DB.schedule[match.classId]?.[day]?.[slot],classId:match.classId,className:match.className}; isConflict=isTrainerConflictSlot(id,day,slot); }
+      }
+      const cellId=`cell-${viewMode}-${id.replace(/[^a-z0-9]/gi,'-')}-${day}-${slot.replace(':','')}`;
+      if(entry){
+        const mainText= viewMode==='class' ? entry.courseName : (entry.className||'?');
+        const subText= viewMode==='class' ? entry.trainerName : (entry.courseName||'?');
+        const code= viewMode==='class' ? (entry.code||'') : (entry.code||'');
+        html+=`<div class="wg-cell occupied" id="${cellId}">
+          <div class="slot-block ${isConflict?'conflict-block':'normal'}" onclick="openCellDropdown('${cellId}','${id}','${day}','${slot}','${viewMode}',true)">
+            <div class="slot-main">${mainText}</div>
+            <div class="slot-sub">${subText}</div>
+            ${code?`<div class="slot-code">${code}</div>`:''}
+            <button class="slot-remove" onclick="event.stopPropagation();removeSlot('${viewMode==='class'?id:entry.classId}','${day}','${slot}','${cellId}')">✕</button>
+          </div>
+        </div>`;
+      } else {
+        // Free slot
+        const trainerAvail= viewMode==='trainer' ? (DB.trainers.find(t=>t.id===id)?.availability?.[day]||false) : true;
+        if(viewMode==='trainer'&&!trainerAvail){
+          html+=`<div class="wg-cell" id="${cellId}" style="background:rgba(255,255,255,0.01)"><div style="height:100%;display:flex;align-items:center;justify-content:center;color:var(--txt3);font-size:9.5px;letter-spacing:1px">OFF</div></div>`;
+        } else {
+          html+=`<div class="wg-cell free" id="${cellId}" onclick="openCellDropdown('${cellId}','${id}','${day}','${slot}','${viewMode}',false)">
+            <div class="cell-add"><span>＋</span><span>ADD</span></div>
+          </div>`;
+        }
+      }
+    });
+  });
+  html+='</div></div>';
+  return html;
+}
+
+// ============================================================
+// TRAINER VIEW
+// ============================================================
+function populateTVSelect(){
+  const sel=document.getElementById('tv-trainer-select');
+  const cur=sel.value;
+  sel.innerHTML='<option value="">— Select Trainer —</option>'+DB.trainers.map(t=>`<option value="${t.id}" ${t.id===cur?'selected':''}>${t.name}</option>`).join('');
+}
+
+function renderTrainerView(){
+  closeDropdown();
+  const trainerId=document.getElementById('tv-trainer-select').value;
+  const wrap=document.getElementById('tv-grid-wrap');
+  const dlBar=document.getElementById('tv-download');
+  if(!trainerId){
+    wrap.innerHTML=`<div class="empty" style="padding:40px 20px"><svg width="36" height="36" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 10-16 0"/></svg><p>Select a trainer above</p></div>`;
+    dlBar.style.display='none'; return;
+  }
+  const tr=DB.trainers.find(t=>t.id===trainerId);
+  dlBar.style.display='flex';
+  document.getElementById('tv-download-label').textContent=tr?.name||'';
+  wrap.innerHTML=buildWeeklyGrid(trainerId,'trainer');
+}
+
+// ============================================================
+// DROPDOWN SLOT MENU
+// ============================================================
+let activeDropdown=null;
+
+function closeDropdown(){
+  if(activeDropdown){ activeDropdown.remove(); activeDropdown=null; }
+}
+
+document.addEventListener('click',e=>{
+  if(activeDropdown&&!activeDropdown.contains(e.target)) closeDropdown();
+});
+
+function openCellDropdown(cellId,id,day,slot,viewMode,isOccupied){
+  closeDropdown();
+  const cell=document.getElementById(cellId);
+  if(!cell) return;
+
+  let items='';
+  if(viewMode==='class'){
+    const classId=id;
+    const cls=DB.classes.find(c=>c.id===classId);
+    // Show available trainers × courses as dropdown options
+    const courses=cls?.courses||[];
+    // For each course, list trainers who can teach it & are free at this slot+day (or already busy=red)
+    if(!courses.length){ items=`<div class="dd-item" style="color:var(--txt3)">No courses in this class. <button onclick="nav('classes')" class="btn btn-xs btn-secondary" style="margin-left:6px">Add courses</button></div>`; }
+    else {
+      const busyTrainers=getAllSlots().filter(s=>s.day===day&&s.slot===slot&&s.classId!==classId).map(s=>s.trainerId);
+      if(isOccupied){
+        const cur=DB.schedule[classId]?.[day]?.[slot];
+        items+=`<div class="dd-header">Currently: ${cur?.courseName} — ${cur?.trainerName}</div>`;
+        items+=`<div class="dd-item" style="color:var(--red-border)" onclick="removeSlot('${classId}','${day}','${slot}','${cellId}');closeDropdown()">✕ Clear this slot</div>`;
+        items+=`<div class="dd-header" style="margin-top:0">Replace with:</div>`;
+      } else {
+        items+=`<div class="dd-header">Assign — ${day} ${slot}</div>`;
+      }
+      courses.forEach(cr=>{
+        // find trainers qualified (have this subject or any trainer)
+        const qualTrainers=DB.trainers.filter(t=>(t.availability?.[day]));
+        qualTrainers.forEach(t=>{
+          const isBusy=busyTrainers.includes(t.id);
+          const cls2=isBusy?'taken':'free-item';
+          const dot=isBusy?'background:#ef4444':'background:#22c55e';
+          items+=`<div class="dd-item ${cls2}" onclick="assignSlot('${classId}','${day}','${slot}','${cr.id}','${cr.name}','${cr.code}','${t.id}','${t.name}','${cellId}',${isBusy})">
+            <span class="dd-dot" style="${dot}"></span>
+            <span style="flex:1">${cr.name}</span>
+            <span style="color:var(--txt3);font-size:11px">${t.name.split(' ').slice(-1)[0]}</span>
+            ${isBusy?'<span style="font-size:10px;color:var(--red);margin-left:4px">BUSY</span>':''}
+          </div>`;
+        });
+      });
+    }
+  } else {
+    // Trainer view: assign which class goes here
+    const trainerId=id;
+    const tr=DB.trainers.find(t=>t.id===trainerId);
+    if(isOccupied){
+      const match=getAllSlots().find(s=>s.trainerId===trainerId&&s.day===day&&s.slot===slot);
+      if(match){ items+=`<div class="dd-header">Currently: ${match.className}</div><div class="dd-item" style="color:var(--red-border)" onclick="removeSlot('${match.classId}','${day}','${slot}','${cellId}');closeDropdown()">✕ Clear this slot</div>`; }
+      items+=`<div class="dd-header" style="margin-top:0">Replace with:</div>`;
+    } else {
+      items+=`<div class="dd-header">Assign class — ${day} ${slot}</div>`;
+    }
+    // Show classes as options
+    DB.classes.forEach(cls=>{
+      const alreadyHasSomething=DB.schedule[cls.id]?.[day]?.[slot];
+      const cls2=alreadyHasSomething?'taken':'free-item';
+      const dot=alreadyHasSomething?'background:#ef4444':'background:#22c55e';
+      const firstCourse=cls.courses?.[0]||{id:'c0',name:'Session',code:'?'};
+      items+=`<div class="dd-item ${cls2}" onclick="assignSlotFromTrainer('${trainerId}','${cls.id}','${day}','${slot}','${cellId}',${!!alreadyHasSomething})">
+        <span class="dd-dot" style="${dot}"></span>
+        <span style="flex:1">${cls.name}</span>
+        ${alreadyHasSomething?`<span style="font-size:10px;color:var(--red);margin-left:4px">TAKEN</span>`:''}
+      </div>`;
+    });
+  }
+  items+=`<div class="dd-cancel" onclick="closeDropdown()">Cancel</div>`;
+
+  const dd=document.createElement('div');
+  dd.className='slot-dropdown';
+  dd.innerHTML=items;
+  dd.style.cssText='position:absolute;top:calc(100% + 2px);left:0;z-index:100;min-width:240px;max-height:300px;overflow-y:auto';
+  cell.style.position='relative';
+  cell.appendChild(dd);
+  activeDropdown=dd;
+  // Prevent click from immediately closing
+  dd.addEventListener('click',e=>e.stopPropagation());
+}
+
+function assignSlot(classId,day,slot,courseId,courseName,code,trainerId,trainerName,cellId,isBusy){
+  if(isBusy){
+    if(!confirm(`${trainerName} is already assigned at ${day} ${slot} in another class. Assign anyway?`)) return;
+  }
+  if(!DB.schedule[classId]) DB.schedule[classId]={};
+  if(!DB.schedule[classId][day]) DB.schedule[classId][day]={};
+  DB.schedule[classId][day][slot]={courseId,courseName,code,trainerId,trainerName};
+  saveDB();
+  closeDropdown();
+  toast(`Assigned: ${courseName} — ${trainerName}`,'success');
+  renderClassView();
+}
+
+function assignSlotFromTrainer(trainerId,classId,day,slot,cellId,isTaken){
+  if(isTaken){
+    if(!confirm(`This class already has a session at ${day} ${slot}. Replace it?`)) return;
+  }
+  const cls=DB.classes.find(c=>c.id===classId);
+  const tr=DB.trainers.find(t=>t.id===trainerId);
+  const firstCourse=cls?.courses?.[0]||{id:'c0',name:'Session',code:'?'};
+  if(!DB.schedule[classId]) DB.schedule[classId]={};
+  if(!DB.schedule[classId][day]) DB.schedule[classId][day]={};
+  DB.schedule[classId][day][slot]={courseId:firstCourse.id,courseName:firstCourse.name,code:firstCourse.code,trainerId,trainerName:tr?.name||'?'};
+  saveDB();
+  closeDropdown();
+  toast(`Assigned: ${cls?.name} — ${tr?.name}`,'success');
+  renderTrainerView();
+}
+
+function removeSlot(classId,day,slot,cellId){
+  if(!confirm('Remove this session?')) return;
+  if(DB.schedule[classId]?.[day]?.[slot]) delete DB.schedule[classId][day][slot];
+  saveDB();
+  closeDropdown();
+  toast('Session removed','warning');
+  if(currentPage==='class-view') renderClassView();
+  else if(currentPage==='trainer-view') renderTrainerView();
+}
+
+// ============================================================
+// DOWNLOAD
+// ============================================================
+function getScheduleData(mode){
+  // Returns {title, rows:[{day,slot,col1,col2,col3}]}
+  if(mode==='class'){
+    const classId=document.getElementById('cv-class-select').value;
+    if(!classId) return null;
+    const cls=DB.classes.find(c=>c.id===classId);
+    const rows=[['Day','Time','Course','Course Code','Trainer']];
+    DAYS.forEach(day=>{
+      SLOTS.forEach(slot=>{
+        const e=DB.schedule[classId]?.[day]?.[slot];
+        if(e) rows.push([day,slot,e.courseName,e.code||'',e.trainerName]);
+      });
+    });
+    return {title:`Timetable: ${cls?.name}`,rows};
+  } else {
+    const trainerId=document.getElementById('tv-trainer-select').value;
+    if(!trainerId) return null;
+    const tr=DB.trainers.find(t=>t.id===trainerId);
+    const rows=[['Day','Time','Class','Course','Course Code']];
+    const allS=getAllSlots().filter(s=>s.trainerId===trainerId);
+    DAYS.forEach(day=>{
+      SLOTS.forEach(slot=>{
+        const e=allS.find(s=>s.day===day&&s.slot===slot);
+        if(e){
+          const cls=DB.classes.find(c=>c.id===e.classId);
+          rows.push([day,slot,cls?.name||'?',e.courseName,e.code||'']);
+        }
+      });
+    });
+    return {title:`Schedule: ${tr?.name}`,rows};
+  }
+}
+
+function downloadExcel(mode){
+  const data=getScheduleData(mode);
+  if(!data){ toast('No schedule to download','warning'); return; }
+  const csv=data.rows.map(r=>r.map(v=>`"${String(v||'').replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob=new Blob([csv],{type:'text/csv'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download=(data.title+'.csv').replace(/[^a-z0-9.-]/gi,'_'); a.click();
+  URL.revokeObjectURL(url);
+  toast('Downloaded as CSV/Excel','success');
+}
+
+function downloadWord(mode){
+  const data=getScheduleData(mode);
+  if(!data){ toast('No schedule to download','warning'); return; }
+  // Build simple HTML doc that Word can open
+  const tableRows=data.rows.map((r,i)=>{
+    const tag=i===0?'th':'td';
+    return `<tr>${r.map(c=>`<${tag} style="border:1px solid #ccc;padding:6px 10px;font-family:Calibri,sans-serif;font-size:12pt">${c}</${tag}>`).join('')}</tr>`;
+  }).join('');
+  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${data.title}</title></head><body style="font-family:Calibri,sans-serif;padding:40px"><h1 style="font-size:16pt">${data.title}</h1><p style="color:#666;font-size:10pt">Generated: ${new Date().toLocaleDateString()}</p><br><table style="border-collapse:collapse;width:100%">${tableRows}</table></body></html>`;
+  const blob=new Blob([html],{type:'application/msword'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download=(data.title+'.doc').replace(/[^a-z0-9.-]/gi,'_'); a.click();
+  URL.revokeObjectURL(url);
+  toast('Downloaded as Word document','success');
+}
+
+function downloadPDF(mode){
+  const data=getScheduleData(mode);
+  if(!data){ toast('No schedule to download','warning'); return; }
+  // Open print window
+  const tableRows=data.rows.map((r,i)=>{
+    const tag=i===0?'th':'td';
+    const bg=i===0?'background:#1a1a1a;color:#fff':'';
+    return `<tr>${r.map(c=>`<${tag} style="border:1px solid #ddd;padding:7px 12px;${bg}">${c}</${tag}>`).join('')}</tr>`;
+  }).join('');
+  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${data.title}</title><style>body{font-family:Arial,sans-serif;padding:30px;max-width:900px;margin:auto}h1{font-size:20px;margin-bottom:4px}p{color:#666;font-size:11px;margin-bottom:20px}table{border-collapse:collapse;width:100%}th{background:#222;color:#fff;padding:8px 12px;text-align:left}td{padding:7px 12px;border:1px solid #ddd}tr:nth-child(even) td{background:#f9f9f9}@media print{body{padding:10px}}</style></head><body><h1>${data.title}</h1><p>Generated on ${new Date().toLocaleDateString()}</p><table>${tableRows}</table><script>window.onload=function(){window.print();}<\/script></body></html>`;
+  const w=window.open('','_blank');
+  w.document.write(html); w.document.close();
+  toast('PDF print dialog opened','info',4000);
+}
+
+// ============================================================
+// RESET
+// ============================================================
+function resetAll(){
+  if(!confirm('Reset all data to demo data?')) return;
+  localStorage.removeItem('ttOS3');
+  seedData(); loadDB(); nav('dashboard');
+  toast('Reset to demo data','info');
+}
+
+// ============================================================
+// INIT
+// ============================================================
+loadDB();
+nav('dashboard');
+</script>
+</body>
+</html>
